@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestor-gastos-v2
+  labels:
+    app: gestor-gastos
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gestor-gastos
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: gestor-gastos
+        version: v2
+    spec:
+      containers:
+        - name: gestor-gastos
+          image: gestor-gastos:v2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10

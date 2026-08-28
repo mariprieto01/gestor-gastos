@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Gastos</title>
+  <style>
+    :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2e37; --txt:#e7e9ee; --mut:#9aa0ac; --acc:#4f7cff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+    .wrap { max-width:720px; margin:0 auto; padding:24px 16px 60px; }
+    h1 { font-size:1.5rem; margin:0 0 4px; }
+    .sub { color:var(--mut); margin:0 0 24px; font-size:.9rem; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+    form { display:grid; gap:10px; }
+    label { font-size:.8rem; color:var(--mut); display:block; margin-bottom:4px; }
+    input, select, button { font-size:1rem; padding:10px 12px; border-radius:8px; border:1px solid var(--line); background:#12151b; color:var(--txt); width:100%; }
+    button { background:var(--acc); border:none; color:#fff; font-weight:600; cursor:pointer; }
+    button:hover { opacity:.9; }
+    .total { font-size:1.1rem; font-weight:600; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+    th { color:var(--mut); font-weight:500; }
+    td:last-child, th:last-child { text-align:right; }
+    .tag { font-size:.75rem; padding:2px 8px; border-radius:999px; background:#232734; color:var(--mut); }
+    .empty { color:var(--mut); text-align:center; padding:20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Gestor de Gastos</h1>
+    <p class="sub">v1 — carga manual</p>
+
+    <div class="card">
+      <form id="form">
+        <div>
+          <label for="descripcion">Descripción</label>
+          <input id="descripcion" required placeholder="Ej: Almuerzo">
+        </div>
+        <div>
+          <label for="monto">Monto</label>
+          <input id="monto" type="number" step="0.01" min="0" required placeholder="0.00">
+        </div>
+        <div>
+          <label for="categoria">Categoría</label>
+          <select id="categoria"></select>
+        </div>
+        <button type="submit">Agregar gasto</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="total">Total: $<span id="total">0.00</span></div>
+      <table>
+        <thead>
+          <tr><th>Descripción</th><th>Categoría</th><th>Monto</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty">Todavía no hay gastos cargados.</div>
+    </div>
+  </div>
+
+  <script>
+    const api = '/api';
+
+    async function cargarCategorias() {
+      const cats = await (await fetch(`${api}/categorias`)).json();
+      const sel = document.getElementById('categoria');
+      sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    async function cargarGastos() {
+      const gastos = await (await fetch(`${api}/gastos`)).json();
+      const tbody = document.getElementById('tbody');
+      const empty = document.getElementById('empty');
+      tbody.innerHTML = gastos.map(g => `
+        <tr>
+          <td>${g.descripcion}</td>
+          <td><span class="tag">${g.categoria}</span></td>
+          <td>$${g.monto.toFixed(2)}</td>
+        </tr>`).join('');
+      empty.style.display = gastos.length ? 'none' : 'block';
+      const total = gastos.reduce((a, g) => a + g.monto, 0);
+      document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        descripcion: document.getElementById('descripcion').value,
+        monto: parseFloat(document.getElementById('monto').value),
+        categoria: document.getElementById('categoria').value,
+      };
+      await fetch(`${api}/gastos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      e.target.reset();
+      cargarGastos();
+    });
+
+    cargarCategorias();
+    cargarGastos();
+  </script>
+</body>
+</html>
