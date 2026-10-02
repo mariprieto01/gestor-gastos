@@ -59,6 +59,12 @@ Con Docker Desktop abierto, correr:
     powershell -ExecutionPolicy Bypass -File setup.ps1
     powershell -ExecutionPolicy Bypass -File setup-monitoring.ps1
 
+Linux / Mac / WSL:
+
+    chmod +x setup.sh setup-monitoring.sh
+    ./setup.sh
+    ./setup-monitoring.sh
+
 Reconstruye la app con las métricas, reinicia los pods y despliega Prometheus y Grafana.
 
 # Ver Grafana
