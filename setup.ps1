@@ -1,12 +1,15 @@
-#!/usr/bin/env bash
-set -e
- 
-target="${1:-}"
-if [[ "$target" != "v1" && "$target" != "v2" ]]; then
-  echo "Uso: ./switch.sh [v1|v2]"
-  exit 1
-fi
- 
-sed "s/version: v[12]/version: $target/" k8s/service.yaml > k8s/service.yaml.tmp
-mv k8s/service.yaml.tmp k8s/service.yaml
-kubectl apply -f k8s/service.yaml
+$ErrorActionPreference = "Stop"
+
+minikube status *> $null
+if ($LASTEXITCODE -ne 0) { minikube start }
+
+docker build -t gestor-gastos:v1 ./v1
+docker build -t gestor-gastos:v2 ./v2
+
+minikube image load gestor-gastos:v1
+minikube image load gestor-gastos:v2
+
+kubectl apply -f k8s/
+kubectl wait --for=condition=available --timeout=120s deployment -l app=gestor-gastos
+
+Write-Host "Listo. Abri la app con: minikube service gestor-gastos-svc"

@@ -47,3 +47,40 @@ Linux / Mac / WSL:
 
     kubectl delete -f k8s/
     minikube stop
+
+# Entregable 2 — Monitoreo y observabilidad
+
+Se agrega monitoreo con Prometheus y Grafana, y una alerta cuando se crean más de 5 gastos de la misma categoría en 5 minutos. 
+
+# Levantar el monitoreo
+
+Con Docker Desktop abierto, correr:
+
+    powershell -ExecutionPolicy Bypass -File setup.ps1
+    powershell -ExecutionPolicy Bypass -File setup-monitoring.ps1
+
+Reconstruye la app con las métricas, reinicia los pods y despliega Prometheus y Grafana.
+
+# Ver Grafana
+
+    minikube service grafana
+
+Usuario: admin / clave: admin. 
+El dashboard "Gestor de Gastos - Monitoreo" tiene: RPS, latencia promedio, gastos por categoría y memoria del proceso.
+
+# Ver Prometheus
+
+    minikube service prometheus
+
+En Status > Targets se ve el scraping cada 5 segundos. En Alerts está la alerta DemasiadosGastosEnCategoria.
+
+# Disparar la alerta
+
+    minikube service gestor-gastos-svc
+
+Abrir la app y cargar varios gastos de la misma categoría (5 o más) en pocos minutos. En Prometheus > Alerts, la alerta DemasiadosGastosEnCategoria pasa a FIRING al superar el umbral de 5 gastos en 5 minutos. El umbral se cambia en k8s/monitoring/prometheus-config.yaml.
+
+# Bajar el monitoreo
+
+    kubectl delete -f k8s/monitoring/
+    minikube stop

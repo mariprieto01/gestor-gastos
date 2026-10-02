@@ -4,11 +4,20 @@ import sqlite3
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from prometheus_client import Counter
+from prometheus_fastapi_instrumentator import Instrumentator
 
 DB_PATH = os.getenv("DB_PATH", "data/gastos.db")
 CATEGORIAS = ["Comida", "Transporte", "Ocio", "Servicios", "Otros"]
 
 app = FastAPI(title="Gestor de Gastos")
+
+# Métrica de negocio: cantidad de gastos creados, separada por categoría.
+gastos_creados = Counter(
+    "gastos_creados_total",
+    "Cantidad de gastos creados",
+    ["categoria"],
+)
 
 
 def init_db():
@@ -61,9 +70,12 @@ def crear_gasto(gasto: GastoIn):
             "INSERT INTO gastos (descripcion, monto, categoria) VALUES (?, ?, ?)",
             (gasto.descripcion, gasto.monto, gasto.categoria),
         )
+        gastos_creados.labels(categoria=gasto.categoria).inc()
         return {"id": cur.lastrowid, **gasto.model_dump()}
 
 
-# Sirve el frontend estático (index.html) en la raíz.
-# Se declara al final para que no tape las rutas /api y /healthz.
+# Expone /metrics para Prometheus. Debe registrarse ANTES del mount de "/".
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
+# Sirve el frontend estático. Se declara al final para no tapar /api, /healthz ni /metrics.
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
